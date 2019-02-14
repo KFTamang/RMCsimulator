@@ -16,6 +16,10 @@ public:
   source(double _x, double _y,double _z):
     x(_x),y(_y),z(_z)
     {}
+  double get_sourse_pos_x(){return x;};
+  double get_sourse_pos_y(){return y;};
+  double get_sourse_pos_z(){return z;};
+
 };
 
 
@@ -42,12 +46,13 @@ public:
   void gen_new_ray();
   void gen_new_ray(double);
   void gen_new_ray_parallel(double);
+  void gen_new_ray_parallel_withangle(double);
   void get_cross_point_zplane(double*, double);
 };
 void ray::gen_new_ray(){
-  // pos_x =  sor.get_sourse_pos_x();
-  // pos_y =  sor.get_sourse_pos_y();
-  // pos_z =  sor.get_sourse_pos_z();
+  pos_x =  sor.get_sourse_pos_x();
+  pos_y =  sor.get_sourse_pos_y();
+  pos_z =  sor.get_sourse_pos_z();
   // dir_x =  rnd.Uniform(0,1.0);
   // dir_y =  rnd.Uniform(0,1.0);
   // dir_z =  rnd.Uniform(0,1.0);
@@ -56,9 +61,9 @@ void ray::gen_new_ray(){
   dir_z =  rnd(mt);
 }
 void ray::gen_new_ray(double cos_max){
-  // pos_x =  sor.get_sourse_pos_x();
-  // pos_y =  sor.get_sourse_pos_y();
-  // pos_z =  sor.get_sourse_pos_z();
+  pos_x =  sor.get_sourse_pos_x();
+  pos_y =  sor.get_sourse_pos_y();
+  pos_z =  sor.get_sourse_pos_z();
   if( cos_max < -1.0 ){
     std::cout << "ERROR:cos_max is too small" << std::endl;
     return;
@@ -84,6 +89,19 @@ void ray::gen_new_ray_parallel(double radius){
   // for debug
 //  std::cout << dir_x << ":" << dir_y << ":" << dir_z << " " << r << " " << theta << std::endl;
 }
+
+void ray::gen_new_ray_parallel_withangle(double angle ){
+  double radius = 1.0;
+  pos_x = 4.0*radius*(rnd(mt)-0.5); //rnd.Uniform(-2*radius,2*radius);
+  pos_y = 4.0*radius*(rnd(mt)-0.5); //rnd.Uniform(-2*radius,2*radius);
+  dir_x = angle;
+  dir_y = 0.0;
+  dir_z = -1.0;
+  // for debug
+//  std::cout << dir_x << ":" << dir_y << ":" << dir_z << " " << r << " " << theta << std::endl;
+}
+
+
 
 // calculating the positin of the cross point of the z=z_0 plane and the strainght line along the x-ray
 void ray::get_cross_point_zplane(double* pos, double z){
@@ -197,57 +215,134 @@ bool detector::detects(ray ray0){
 }
 
 
+class rmc_system {
+  public:
+    rmc_system ();
+    ~rmc_system ();
+    void generate_response();
+    bool run_single_step_parallel(){
+      ray0.gen_new_ray_parallel(det.getRadius());
+      if( col0.blocks(ray0) || col1.blocks(ray0) || !det.detects(ray0) ){
+        return false;
+      }else{
+        return true;
+      }
+    };
+    bool run_single_step_parallel_with_angle(double angle){
+      ray0.gen_new_ray_parallel_withangle(angle);
+      if( col0.blocks(ray0) || col1.blocks(ray0) || !det.detects(ray0) ){
+        return false;
+      }else{
+        return true;
+      }
+    };
+    void clock_collimator(){
+      ++collimator_angle;
+      col0.clock_collimator(collimator_angle);
+      col1.clock_collimator(collimator_angle);
+
+      };
+
+
+  private:
+    rotationModulationCollimator col0;
+    rotationModulationCollimator col1;
+    detector det;
+    source sor;
+    ray ray0;
+    int collimator_angle;
+    static constexpr int N  = 1000;
+    double response[N][2];
+};
+
+rmc_system ::rmc_system () : 
+  col0(0.1),
+  col1(155.0),
+  det(0.0),
+  sor(0.003,0.0,1000.0),
+  ray0(sor),
+  collimator_angle(0) {
+}
+
+rmc_system ::~rmc_system () {
+}
+
+void rmc_system::generate_response(){
+  int count = 0;
+  for(int i=0;i<N;++i){
+    double angle  = 10.0*i/1000;
+    for(int m=0;m<1000;++m){
+      if(run_single_step_parallel_with_angle(angle)){
+        ++count;
+      }
+      response[i][0] = angle;
+      response[i][1] = 1.0*count/1000;
+
+    }
+  }
+}
+
+// class image_reconstructor {
+//   public:
+//     image_reconstructor(collimator,collimator,detector);
+//     ~image_reconstructor();
+
+//   private:
+//     double response[1000][2];  
+// };
+
+// image_reconstructor::image_reconstructor(collimator col0,collimator col1, detector det) {
+//   source sor(0.003,0.0,1000.0);
+//   ray ray0(sor);
+  
+// }
+
+// image_reconstructor::~image_reconstructor() {
+// }
+
 
 int main(){
 
-  
- rotationModulationCollimator col0(0.1);
- rotationModulationCollimator col1(155.0);
-  // collimator col0(1);
-  // collimator col1(2);
 
-  source sor(0,0,1000.0);
-  ray ray0(sor);
+  rmc_system rmc_system0;
 
-  detector det(0.0);
-
-    col0.clock_collimator(0);
-    col1.clock_collimator(0);
-
-  TH1D* h = new TH1D("h","h",360,-0.5,360-0.5);
-
+//  TH1D* h = new TH1D("h","h",360,-0.5,360-0.5);
+  double count_rate_data[360][2] = {};
   const  int iteration = 100000;
   for(int m=0;m<360;++m){
     int cnt = 0;
-    col0.clock_collimator(m);
-    col1.clock_collimator(m);
     for(int i=0;i<iteration;++i){
-//      ray0.gen_new_ray(-pow(100.0/101.0,0.5));
-      ray0.gen_new_ray_parallel(det.getRadius());
-//      ray0.gen_new_ray(-1.0+0.045*0.045/2);
-      if( col0.blocks(ray0) || col1.blocks(ray0) || !det.detects(ray0) ){
-        continue;
-      }else{
-//        std::cout << i << " hit" << std::endl;
+      if(rmc_system0.run_single_step_parallel()){
         ++cnt;
       }
     }
+    rmc_system0.clock_collimator();
     std::cout << m << " " << cnt << std::endl;
-    h->Fill(m,1.0*cnt/iteration);
+//    h->Fill(m,1.0*cnt/iteration);
+    count_rate_data[m][0] = m;
+    count_rate_data[m][1] = 1.0*cnt/iteration;
+
   }
   
 
+
+  // image reconstruction
+
+  // image_reconstructor ir(col0,col1,det);
+  // double reconstructed_image[1000][1000];
+  // ir.reconstruct_image(count_rate_data,reconstruct_image);
+
   // debug
-  TCanvas* c1 = new TCanvas();
-  h->Draw("hist");
-  c1->SaveAs("colli_image.pdf(");
-  col0.image->Draw("colz");
-  c1->SaveAs("colli_image.pdf");
-  col1.image->Draw("colz");
-  c1->SaveAs("colli_image.pdf");
-  det.image->Draw("colz");
-  c1->SaveAs("colli_image.pdf)");
-  c1->Close();
+//   TCanvas* c1 = new TCanvas();
+// //  h->Draw("hist");
+//   c1->SaveAs("colli_image.pdf(");
+//   col0.image->Draw("colz");
+//   c1->SaveAs("colli_image.pdf");
+//   col1.image->Draw("colz");
+//   c1->SaveAs("colli_image.pdf");
+//   det.image->Draw("colz");
+//   c1->SaveAs("colli_image.pdf)");
+//   c1->Close();
 
   return 0;
 }
