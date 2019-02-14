@@ -6,7 +6,7 @@ The detector doesn't have to be position sensitive and the image is constructed 
 (i.e. how many photons are detected in the deteector) through a mathematical process.
 This type of imaging method is called indirect imaging (as opposed to direct imager, where lenses or mirrors are in use).
 
-# What is RMCsimulator
+# What is RMCsimulator?
 RMCsimulator is a simulator of an optic of RHESSI spacecraft, as an example of RMC.
 This is to encourage the understanging of how RMC works and how images are constructed.
 
