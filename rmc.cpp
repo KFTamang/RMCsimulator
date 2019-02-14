@@ -1,6 +1,8 @@
 #define _USE_MATH_DEFINES
 #include <iostream>
 #include <cmath>
+#include <random>
+
 #include <TH1.h>
 #include <TRandom3.h>
 #include <TH1.h>
@@ -21,16 +23,20 @@ public:
 class ray{
 private:
   source sor;
-  double pos_x = 0.013;
+  double pos_x = 0.03;
   double pos_y = 0.0;
   double pos_z = 1000.0;
   double dir_x = 0.0015;
   double dir_y = 0.0;
   double dir_z = -1.0;
-  TRandom3 rnd;
+  //  TRandom3 rnd;
+  std::mt19937 mt;
+  std::uniform_real_distribution<double> rnd;
 public:
   ray(source _sor):
-    sor(_sor)
+    sor(_sor),
+    mt(100),
+    rnd(0.0,1.0)
     {}
 
   void gen_new_ray();
@@ -42,9 +48,12 @@ void ray::gen_new_ray(){
   // pos_x =  sor.get_sourse_pos_x();
   // pos_y =  sor.get_sourse_pos_y();
   // pos_z =  sor.get_sourse_pos_z();
-  dir_x =  rnd.Uniform(0,1.0);
-  dir_y =  rnd.Uniform(0,1.0);
-  dir_z =  rnd.Uniform(0,1.0);
+  // dir_x =  rnd.Uniform(0,1.0);
+  // dir_y =  rnd.Uniform(0,1.0);
+  // dir_z =  rnd.Uniform(0,1.0);
+  dir_x =  rnd(mt);
+  dir_y =  rnd(mt);
+  dir_z =  rnd(mt);
 }
 void ray::gen_new_ray(double cos_max){
   // pos_x =  sor.get_sourse_pos_x();
@@ -58,9 +67,9 @@ void ray::gen_new_ray(double cos_max){
     return;
   }
 
-  dir_z =  rnd.Uniform(-1.0,cos_max);
+  dir_z =  (cos_max+1)*rnd(mt)-1; //rnd.Uniform(-1.0,cos_max);
   double r = pow(1.0 - dir_z*dir_z,0.5);
-  double theta = rnd.Uniform(0,2*M_PI);
+  double theta = 2.*M_PI*rnd(mt); //rnd.Uniform(0,2*M_PI);
   dir_x =  r*cos(theta);
   dir_y =  r*sin(theta);
 
@@ -69,8 +78,8 @@ void ray::gen_new_ray(double cos_max){
 }
 
 void ray::gen_new_ray_parallel(double radius){
-  pos_x =  rnd.Uniform(-2*radius,2*radius);
-  pos_y =  rnd.Uniform(-2*radius,2*radius);
+  pos_x = 4.0*radius*(rnd(mt)-0.5); //rnd.Uniform(-2*radius,2*radius);
+  pos_y = 4.0*radius*(rnd(mt)-0.5); //rnd.Uniform(-2*radius,2*radius);
 
   // for debug
 //  std::cout << dir_x << ":" << dir_y << ":" << dir_z << " " << r << " " << theta << std::endl;

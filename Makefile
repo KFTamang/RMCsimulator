@@ -4,8 +4,8 @@ SRCS = $(TARGET).cpp
 OBJS = $(TARGET).o
  
  
-CXXFLAGS   = `root-config --cflags` -Wl,-rpath,${ROOTSYS}/lib -O1
-CXXLIBS    = `root-config --libs`
+CXXFLAGS   = `root-config --cflags` -std=c++11  -Wl,-rpath,${ROOTSYS}/lib -O1 
+CXXLIBS    = `root-config --libs` 
 CC = g++ 
  
 $(TARGET): $(OBJS)
