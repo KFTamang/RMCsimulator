@@ -3,6 +3,8 @@
 #include <cmath>
 #include <random>
 
+#include "visualizer.cpp"
+
 #include <TH1.h>
 #include <TRandom3.h>
 #include <TH1.h>
