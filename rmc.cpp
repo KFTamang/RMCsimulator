@@ -3,13 +3,16 @@
 #include <cmath>
 #include <random>
 
-#include "visualizer.cpp"
+#include "visualizer.hh"
 
 #include <TH1.h>
 #include <TRandom3.h>
 #include <TH1.h>
 #include <TH2.h>
 #include <TCanvas.h>
+
+//const bool debug = true;
+const bool debug = false;
 
 class source{
 private:
@@ -50,6 +53,27 @@ public:
   void gen_new_ray_parallel(double);
   void gen_new_ray_parallel_withangle(double);
   void get_cross_point_zplane(double*, double);
+  void set_pos(double* _pos){
+    pos_x = _pos[0];
+    pos_y = _pos[1];
+    pos_z = _pos[2];
+  };
+  void set_pos_with_random_width(double* _pos,double width){
+    pos_x = _pos[0] + width*(2*rnd(mt)-1.0);
+    pos_y = _pos[1] + width*(2*rnd(mt)-1.0);
+  };
+  void set_dir(double* dir){
+    dir_x = dir[0];
+    dir_y = dir[1];
+    dir_z = dir[2];
+  };
+  void calc_pos(){};
+  void print_dir(){
+    std::cout << "dir x:" << dir_x << ", y:" << dir_y << ", z:" << dir_z << std::endl; 
+  }
+  void print_pos(){
+    std::cout << "pos x:" << pos_x << ", y:" << pos_y << ", z:" << pos_z << std::endl; 
+  }
 };
 void ray::gen_new_ray(){
   pos_x =  sor.get_sourse_pos_x();
@@ -93,9 +117,9 @@ void ray::gen_new_ray_parallel(double radius){
 }
 
 void ray::gen_new_ray_parallel_withangle(double angle ){
-  double radius = 1.0;
-  pos_x = 4.0*radius*(rnd(mt)-0.5); //rnd.Uniform(-2*radius,2*radius);
-  pos_y = 4.0*radius*(rnd(mt)-0.5); //rnd.Uniform(-2*radius,2*radius);
+  // double radius = 1.0;
+  // pos_x = 4.0*radius*(rnd(mt)-0.5); //rnd.Uniform(-2*radius,2*radius);
+  // pos_y = 4.0*radius*(rnd(mt)-0.5); //rnd.Uniform(-2*radius,2*radius);
   dir_x = angle;
   dir_y = 0.0;
   dir_z = -1.0;
@@ -111,6 +135,10 @@ void ray::get_cross_point_zplane(double* pos, double z){
   pos[0] = a*dir_x + pos_x;  
   pos[1] = a*dir_y + pos_y;  
   pos[2] = z;
+  if(debug){
+    std::cout << "a:" <<  a  << ", pos[0]:" << pos[0];
+    std::cout << ", pos[1]:" << pos[1] << ", pos[2]:" << pos[2] << std::endl;
+  } 
 }
 
 
@@ -133,9 +161,9 @@ class collimator{
 
 class rotationModulationCollimator : public collimator{
   private:
-    static constexpr int num_strips = 32;
-    static constexpr double width_strip = 0.15;
+    static constexpr int num_strips = 5; //32;
     static constexpr double width_collimator = 4.5;
+    static constexpr double width_strip = width_collimator/num_strips/2 ; // 0.15;
     static constexpr double width_gap = (2.0*width_collimator - num_strips * width_strip)/(num_strips-1);
 //    static constexpr double width_gap = 0.02;
 //    static constexpr int num_strips = ;
@@ -149,6 +177,9 @@ class rotationModulationCollimator : public collimator{
     }
 
   public:
+    double colli_image_x[100];
+    double colli_image_y[100];
+    double colli_image_z[100*100];
     TH2D* image = new TH2D("colli_image","colli_image",400,-width_collimator,width_collimator,400,-width_collimator,width_collimator); // debug
 
     rotationModulationCollimator(double _pos): collimator(_pos){
@@ -175,8 +206,8 @@ class rotationModulationCollimator : public collimator{
         double strip_right = (i+1)*width_strip + i*width_gap - width_collimator;
 //        std::cout << i << " " << strip_left << " " << strip_right << std::endl; //debug
         if(cp_pos[0]>strip_left && cp_pos[0]<strip_right && cp_pos[1]<width_collimator && cp_pos[1]>-width_collimator){
-          rotate_2d(cp_pos,angle);
           image->Fill(cp_pos[0],cp_pos[1]);
+          rotate_2d(cp_pos,angle);
           return true;
         }
       }
@@ -222,6 +253,9 @@ class rmc_system {
     rmc_system ();
     ~rmc_system ();
     void generate_response();
+    static constexpr int N  = 1000;
+    double response_x[N];
+    double response_y[N];
     bool run_single_step_parallel(){
       ray0.gen_new_ray_parallel(det.getRadius());
       if( col0.blocks(ray0) || col1.blocks(ray0) || !det.detects(ray0) ){
@@ -238,6 +272,29 @@ class rmc_system {
         return true;
       }
     };
+    void set_source_pos(){
+      double pos[3] = {};
+      ray0.get_cross_point_zplane(pos,1000.0);
+      ray0.set_pos(pos);
+    };
+    void set_source_pos_with_width(double width){
+      double pos[3] = {};
+      ray0.get_cross_point_zplane(pos,1000.0);
+      ray0.set_pos_with_random_width(pos,width);
+    };
+    void set_source_pos_with_angle(double angle){
+      double dir[3] = {angle,0.0,-1.0};
+      ray0.set_dir(dir);
+      set_source_pos();
+    };
+    void set_source_pos_randomly_with_angle(double angle,double source_width){
+      double dir[3] = {angle,0.0,-1.0};
+      ray0.set_dir(dir);
+      set_source_pos_with_width(source_width);
+    };
+    void set_source_pos_randomly(double source_width){
+      set_source_pos_with_width(source_width);
+    };
     void clock_collimator(){
       ++collimator_angle;
       col0.clock_collimator(collimator_angle);
@@ -245,6 +302,12 @@ class rmc_system {
 
       };
 
+    rotationModulationCollimator get_col0(){
+      return col0;
+    };
+    rotationModulationCollimator get_col1(){
+      return col1;
+    };
 
   private:
     rotationModulationCollimator col0;
@@ -253,15 +316,16 @@ class rmc_system {
     source sor;
     ray ray0;
     int collimator_angle;
-    static constexpr int N  = 1000;
-    double response[N][2];
+
+
+
 };
 
 rmc_system ::rmc_system () : 
   col0(0.1),
   col1(155.0),
   det(0.0),
-  sor(0.003,0.0,1000.0),
+  sor(0.03,0.0,1000.0),
   ray0(sor),
   collimator_angle(0) {
 }
@@ -270,15 +334,22 @@ rmc_system ::~rmc_system () {
 }
 
 void rmc_system::generate_response(){
-  int count = 0;
+  int iter = 10000;
   for(int i=0;i<N;++i){
-    double angle  = 10.0*i/1000;
-    for(int m=0;m<1000;++m){
+    int count = 0;
+    double angle  = 0.2*i/N;
+    set_source_pos_with_angle(angle);
+    if(debug)    ray0.print_dir();
+    if(debug)    ray0.print_pos();
+    for(int m=0;m<iter;++m){
       if(run_single_step_parallel_with_angle(angle)){
         ++count;
       }
-      response[i][0] = angle;
-      response[i][1] = 1.0*count/1000;
+      set_source_pos_randomly(det.getRadius());
+      if(debug) ray0.print_pos();
+      if(debug) ray0.print_dir();
+      response_x[i] = angle;
+      response_y[i] = 1.0*count/iter;
 
     }
   }
@@ -305,34 +376,37 @@ void rmc_system::generate_response(){
 
 int main(){
 
+  visualizer vis(400,800);
 
   rmc_system rmc_system0;
 
 //  TH1D* h = new TH1D("h","h",360,-0.5,360-0.5);
-  double count_rate_data[360][2] = {};
-  const  int iteration = 100000;
-  for(int m=0;m<360;++m){
-    int cnt = 0;
-    for(int i=0;i<iteration;++i){
-      if(rmc_system0.run_single_step_parallel()){
-        ++cnt;
-      }
-    }
-    rmc_system0.clock_collimator();
-    std::cout << m << " " << cnt << std::endl;
-//    h->Fill(m,1.0*cnt/iteration);
-    count_rate_data[m][0] = m;
-    count_rate_data[m][1] = 1.0*cnt/iteration;
+  double count_rate_data_x[360] = {};
+  double count_rate_data_y[360] = {};
+  const  int iteration = 10;
+//   for(int m=0;m<360;++m){
+//     int cnt = 0;
+//     for(int i=0;i<iteration;++i){
+//       if(rmc_system0.run_single_step_parallel()){
+//         ++cnt;
+//       }
+//     }
+//     // rmc_system0.clock_collimator();
+//     std::cout << m << " " << cnt << std::endl;
+// //    h->Fill(m,1.0*cnt/iteration);
+//     count_rate_data_x[m] = m;
+//     count_rate_data_y[m] = 1.0*cnt/iteration;
 
-  }
+//   }
   
+  vis.add1d(count_rate_data_x,count_rate_data_y,360);
+
+  vis.add2dhist(rmc_system0.get_col0().image);
+
+  rmc_system0.generate_response();
+  vis.add1d(rmc_system0.response_x,rmc_system0.response_y,rmc_system0.N);
 
 
-  // image reconstruction
-
-  // image_reconstructor ir(col0,col1,det);
-  // double reconstructed_image[1000][1000];
-  // ir.reconstruct_image(count_rate_data,reconstruct_image);
 
   // debug
 //   TCanvas* c1 = new TCanvas();
@@ -346,5 +420,7 @@ int main(){
 //   c1->SaveAs("colli_image.pdf)");
 //   c1->Close();
 
+  vis.showQue();
+  vis.saveCanvas("rmc_image.pdf");
   return 0;
 }

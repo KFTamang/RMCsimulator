@@ -5,7 +5,7 @@ OBJS = $(TARGET).o
  
  
 CXXFLAGS   = `root-config --cflags` -std=c++11  -Wl,-rpath,${ROOTSYS}/lib -O1 
-CXXLIBS    = `root-config --libs` -lrandom 
+CXXLIBS    = `root-config --libs` -g
 CC = g++ 
  
 $(TARGET): $(OBJS)
