@@ -7,6 +7,8 @@
 #include <TString.h>
 
 
+
+
 class visualizer {
     private:
         static constexpr int N = 10;
@@ -46,7 +48,7 @@ class visualizer {
             double deltaX = (x[N-1]-x[0])/(N-1)/2;
             h1[current] = new TH1D(Form("h%d",current),Form("h%d",current),N,min-deltaX,max+deltaX);
             for(int i=0;i<N;++i){
-                std::cout << i << " " <<  x[i] << ":" << y[i] << std::endl;
+                // std::cout << i << " " <<  x[i] << ":" << y[i] << std::endl;
                 h1[current]->Fill(x[i],y[i]);
             }
             h1[current]->Draw();
@@ -66,7 +68,7 @@ class visualizer {
                                     Nx,minX-deltaX,maxX+deltaX,Ny,minY-deltaY,maxY+deltaY);
             for(int i=0;i<Nx;++i){
                 for(int m=0;m<Ny;++m){
-                    std::cout << i << ":" << m << " " << x[i] << ":" << y[i] << ":" << z[m] << std::endl;
+                    // std::cout << i << ":" << m << " " << x[i] << ":" << y[i] << ":" << z[m] << std::endl;
                     h2[current]->Fill(x[i],y[m],z[i+m*Nx]);
                 }
             }
@@ -81,7 +83,7 @@ class visualizer {
             double deltaX = (x[N-1]-x[0])/(N-1)/2;
             hque_1d[que_current_1d] = new TH1D(Form("h%d_1d",que_current_1d),Form("h%d_1d",que_current_1d),N,min-deltaX,max+deltaX);
             for(int i=0;i<N;++i){
-                std::cout << i << " " <<  x[i] << ":" << y[i] << std::endl;
+                // std::cout << i << " " <<  x[i] << ":" << y[i] << std::endl;
                 hque_1d[que_current_1d]->Fill(x[i],y[i]);
             }
             opt[que_current_1d] = "";
@@ -103,7 +105,7 @@ class visualizer {
                                     Nx,minX-deltaX,maxX+deltaX,Ny,minY-deltaY,maxY+deltaY);
             for(int i=0;i<Nx;++i){
                 for(int m=0;m<Ny;++m){
-                    std::cout << i << ":" << m << " " << x[i] << ":" << y[i] << ":" << z[m] << std::endl;
+                    // std::cout << i << ":" << m << " " << x[i] << ":" << y[i] << ":" << z[m] << std::endl;
                     hque_2d[que_current_2d]->Fill(x[i],y[m],z[i+m*Nx]);
                 }
             }

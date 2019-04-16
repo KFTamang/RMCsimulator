@@ -11,8 +11,8 @@
 #include <TH2.h>
 #include <TCanvas.h>
 
-//const bool debug = true;
-const bool debug = false;
+const bool debug = true;
+// const bool debug = false;
 
 class source{
 private:
@@ -334,7 +334,7 @@ rmc_system ::~rmc_system () {
 }
 
 void rmc_system::generate_response(){
-  int iter = 10000;
+  int iter = 1;
   for(int i=0;i<N;++i){
     int count = 0;
     double angle  = 0.2*i/N;
@@ -348,6 +348,7 @@ void rmc_system::generate_response(){
       set_source_pos_randomly(det.getRadius());
       if(debug) ray0.print_pos();
       if(debug) ray0.print_dir();
+      if(debug) std::cout << std::endl;
       response_x[i] = angle;
       response_y[i] = 1.0*count/iter;
 
@@ -399,7 +400,7 @@ int main(){
 
 //   }
   
-  vis.add1d(count_rate_data_x,count_rate_data_y,360);
+  // vis.add1d(count_rate_data_x,count_rate_data_y,360);
 
   vis.add2dhist(rmc_system0.get_col0().image);
 
