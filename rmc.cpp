@@ -200,6 +200,7 @@ class rotationModulationCollimator : public collimator{
       double cp_pos[3];
       ray0.get_cross_point_zplane(cp_pos,pos);
       rotate_2d(cp_pos,-angle);
+      if(debug) std::cout << "block:" << std::endl;
 //      std::cout << cp_pos[0] << " " << cp_pos[1] << " " << cp_pos[2] << std::endl; //debug
       for(int i=0;i<num_strips;++i){
         double strip_left =      i*width_strip + i*width_gap - width_collimator;
@@ -279,6 +280,7 @@ class rmc_system {
     };
     void set_source_pos_with_width(double width){
       double pos[3] = {};
+      if(debug) std::cout << "set_source_pos_with_width:" << std::endl;
       ray0.get_cross_point_zplane(pos,1000.0);
       ray0.set_pos_with_random_width(pos,width);
     };
@@ -337,21 +339,25 @@ void rmc_system::generate_response(){
   int iter = 1;
   for(int i=0;i<N;++i){
     int count = 0;
-    double angle  = 0.2*i/N;
+    double angle  = 0.0;// 0.2*i/N;
     set_source_pos_with_angle(angle);
+    if(debug)   std::cout << "angle:" << angle << std::endl;
     if(debug)    ray0.print_dir();
     if(debug)    ray0.print_pos();
     for(int m=0;m<iter;++m){
       if(run_single_step_parallel_with_angle(angle)){
+        if(debug) std::cout << "hit" << std::endl;
         ++count;
+      }else{
+        if(debug) std::cout << "miss" << std::endl;
       }
-      set_source_pos_randomly(det.getRadius());
       if(debug) ray0.print_pos();
       if(debug) ray0.print_dir();
-      if(debug) std::cout << std::endl;
       response_x[i] = angle;
       response_y[i] = 1.0*count/iter;
+      set_source_pos_randomly(det.getRadius());
 
+      if(debug) std::cout << std::endl;
     }
   }
 }
